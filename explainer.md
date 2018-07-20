@@ -936,6 +936,29 @@ function drawScene() {
 }
 ```
 
+### Immersive Nagivation
+
+There are several scenarios in which a user may want to navigate to a page in such a way that it immediately begins displaying immersive WebXR content. This is known as "Immersive Navigation". Some potential cases that may trigger immersive navigation are:
+
+ * Navigating from within an immersive WebXR session with the `window.location` attribute or `window.history` API.
+ * Opening a page from a shortcut that has been added to a homescreen, bookmarks, or other "deep link" context.
+ * Opened within a native app.
+
+It's up to the UA which immersive navigation scenarios it will support (although there are security and privacy considerations that all UAs should take into account, see below.) As a result, pages should never exclusively rely on immersive navigation as their only method for displaying immersive content. For a far more thorough look at the criteria that should be examined for determining when immersive navigation is appropriate and other considerations surrounding it, see the [Navigation Explainer](https://github.com/immersive-web/webxr/pull/382).
+
+A page enables immersive navigation by calling `requestImmersiveNavigationSession` on the `navigator.xr` object. This call is passed an `XRSessionCreationOptions` dictionary like `XRDevice`'s `requestSession` function, but the `immersive` option is ignored, since "immersive navigation" implies that the receiving session must be immersive. This call must be made prior to the `window`'s `load` event has completed, or the promise will reject immediately. Additionally if the page is not eligible for immersive navigation or the `XRSessionCreationOptions` specified are not compatible with the session navigated from the promise will also reject.
+
+```js
+window.addEventListener('load', () => {
+  // { immersive: true } is implicit in this call, because navigations between
+  // immersive sessions is the only context in which this makes sense.
+  navigator.xr.requestImmersiveNavigationSession({ outputContext: ctx }).then((session) => {
+    xrDevice = session.device;
+    OnSessionStarted(session);
+  });
+});
+```
+
 ## Appendix A: I don’t understand why this is a new API. Why can’t we use…
 
 ### `DeviceOrientation` Events
@@ -980,6 +1003,7 @@ partial interface Navigator {
 [SecureContext, Exposed=Window] interface XR : EventTarget {
   attribute EventHandler ondevicechange;
   Promise<XRDevice> requestDevice();
+  Promise<XRSession> requestImmersiveNavigationSession(optional XRSessionCreationOptions parameters);
 };
 
 //
