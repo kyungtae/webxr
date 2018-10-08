@@ -232,6 +232,8 @@ Other XR hardware that is orientation-only tracking, may provide an emulated val
 ### Transitioning between XRFrameOfReferences
 It is expected that developers will often choose to preview `immersive` experiences with a similar experience `inline`.  In this situation, users often expect to see the scene from the same perspective when they make the transition from `inline` to `immersive`. In most cases, developers can accomplish this by computing the transform between the user and the virtual scene's origin in the previous `XRSession`.  When the new `XRSession` is initialized, the same transform can be applied to the virtual scene's origin in the new `XRFrameOfReference`.
 
+In addition, when building a unbounded experiences, it may be necessary to sometimes switch from the primary `XRUnboundedFrameOfReference` to instead use an `XRBoundedFrameOfReference`.  For example, a whole-home renovation experience might choose to switch to a bounded frame of reference for reviewing a furniture selection library.
+
 ### Handling a Tracking System Reset
 Many XR systems have a mechanism for allowing the user to reset which direction is "forward" or re-center the scene's origin at their current location. For security and comfort reasons the WebXR Device API has no mechanism to trigger a pose reset programmatically, but it can still be useful to know when it happens. Pages may want to take advantage of the visual discontinuity to reposition the user or other elements in the scene into a more natural position for the new orientation. Pages may also want to use the opportunity to clear or reset any additional transforms that have been applied if no longer needed.
 
