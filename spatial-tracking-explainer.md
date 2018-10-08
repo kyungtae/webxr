@@ -2,17 +2,23 @@
 This document is a subsection of the main WebXR Device API explainer document which can be found [here](explainer.md).  The main explainer contains all the information you could possibly want to know about setting up a WebXR session, the render loop, and more.  In contrast, this document covers the technology and APIs for tracking users' movement for a stable, comfortable, and predictable experience that works on the widest range of XR hardware.
 
 ## Introduction
-A big differentiating aspect of XR, as opposed to standard 3D rendering, is that users control the view of the experience via their body motion.  To make this possible, XR hardware needs to be capable of tracking the user's motion in 3D space.  Within the XR ecosystem there is a wide range of hardware form factors and capabilities which have historically only been available to developers through device-specific SDKs and app platforms. WebXR changes that by allowing developers to deliver experiences without going through an app store.  The Web gives developers broader reach, but the consequence is that developers no longer have predictability about the capability of the hardware their experiences will be running on.
+A big differentiating aspect of XR, as opposed to standard 3D rendering, is that users control the view of the experience via their body motion.  To make this possible, XR hardware needs to be capable of tracking the user's motion in 3D space.  Within the XR ecosystem there is a wide range of hardware form factors and capabilities which have historically only been available to developers through device-specific SDKs and app platforms. To ship software in a specific app store, developers optimize their experiences for specific VR hardware (HTC Vive, GearVR, Mirage Solo, etc) or AR hardware (HoloLens, ARKit, ARCore, etc).  WebXR  development is fundamentally different in that regard; the Web gives developers broader reach, with the consequence that they no longer have predictability about the capability of the hardware their experiences will be running on.
 
 ## Frames of Reference
-The WebXR Device API makes developers think upfront about the mobility needs of the experience they are building (rather than underlying tracking technology) by requring them to explicitly request an appropriate `XRFrameOfReference`.  The `XRFrameOfReference` object acts as a substrate for the XR experience being built by establishing guarantees about supported motion and providing a coordinate system in which developers can retrieve `XRDevicePose` and view matrices.  
+The wide range of hardware form factors makes it impractical and unscalable to expect developers to reason directly about the tracking technology their experience will be running on.  Instead, the WebXR Device API is designed to have developers think upfront about the mobility needs of the experience they are building which is communicated to the User Agent by explicitly requesting an appropriate `XRFrameOfReference`.  The `XRFrameOfReference` object acts as a substrate for the XR experience being built by establishing guarantees about supported motion and providing a coordinate system in which developers can retrieve `XRDevicePose` and view matrices.  The critical aspect to note is that the User Agent (or underlying platform) is responsible for providing consistently behaved lower-capability `XRFrameOfReference` objects even when running on a higher-capability tracking system. 
 
-There are three types of frames of reference: `bounded`, `unbounded`, and `stationary`.  A bounded experience is one in which the user will move around their physical environment to fully interact, but will not need to travel beyond a fixed boundary defined by the XR hardware.  An unbounded experience is one in which a user is able to freely move around their physical environment and travel significant distances.  A stationary experience is one which does not require the user to move around in space, and includes "seated" or "standing" experiences.
+There are three types of frames of reference: `bounded`, `unbounded`, and `stationary`.  A bounded experience is one in which the user will move around their physical environment to fully interact, but will not need to travel beyond a fixed boundary defined by the XR hardware.  An unbounded experience is one in which a user is able to freely move around their physical environment and travel significant distances.  A stationary experience is one which does not require the user to move around in space, and includes "seated" or "standing" experiences.  Examples of each of these types of experiences can be found in the detailed sections below.
 
-The critical aspect of this approach is that the User Agent (or underlying platform) is responsible for providing consistently behaved lower-capability `XRFrameOfReference` objects even when running on a higher-capability tracking system.  That said, not all experiences will work on all XR hardware and not all XR hardware will support all experiences (see Appendix A: XRFrameOfReference Availability).  In the spirit of [progressive enhanncement](https://developer.mozilla.org/en-US/docs/Glossary/Progressive_Enhancement), it is strongly recommended that developers select the least capable `XRFrameOfReference` that suffices for the experience they are building.  Requesting a more capable frame of reference will artificially restrict the set of XR devices their experience will otherwise be viewable from.
+It is worth noting that not all experiences will work on all XR hardware and not all XR hardware will support all experiences (see Appendix A: XRFrameOfReference Availability).  For example, it is not possible to build a experience which requires the user to walk around on a device like a GearVR.  In the spirit of [progressive enhanncement](https://developer.mozilla.org/en-US/docs/Glossary/Progressive_Enhancement), it is strongly recommended that developers select the least capable `XRFrameOfReference` that suffices for the experience they are building.  Requesting a more capable frame of reference will artificially restrict the set of XR devices their experience will otherwise be viewable from.
 
 ### Bounded Frame of Reference
 A _bounded_ experience is one in which a user moves around their physical environment to fully interact, but will not need to travel beyond a pre-established boundary.  A _bounded_ experience is similar to a _unbounded_ experience in that both rely on XR hardware capable of tracking a users' locomotion.  However, _bounded_ experiences are explicitly focused on nearby content which allows them to target XR hardware that requires a preconfigured play area as well as XR hardware able to track location freely.
+
+Some example use cases: 
+* VR painting/sculpting tool
+* Training simulators
+* Dance games
+* Previewing of 3D objects in the real world
 
 The origin of this type will be initialized at a position on the floor for which a boundary can be provided to the app, defining an empty region where it is safe for the user to move around. The y value will be 0 at floor level, while the exact x, z, and orientation values will be initialized based on the conventions of the underlying platform for room-scale experiences. Platforms where the user defines a fixed room-scale origin and boundary may initialize the remaining values to match the room-scale origin. Users with fixed-origin systems are familiar with this behavior, however developers may choose to be extra resilient to this situation by building UI to guide users back to the origin if they are too far away. Platforms that generally allow for unbounded movement may display UI to the user during the asynchronous request, asking them to define or confirm such a floor-level boundary near the user's current location.
 
@@ -60,9 +66,13 @@ function createBoundsMesh() {
 ```
 
 ### Unbounded Frame of Reference
-A _unbounded_ experience is one in which the user is able to freely move around their physical environment. An example of this sort of experience would be a campus tour or a whole-house renovation preview. These experiences explicitly require that the user be unbounded in their ability to walk around, and the unbounded frame of reference will adjust its origin as needed to maintain optimal stability for the user, even if the user walks many meters from the origin. In doing so, the origin may drift from its original physical location.
+A _unbounded_ experience is one in which the user is able to freely move around their physical environment. These experiences explicitly require that the user be unbounded in their ability to walk around, and the unbounded frame of reference will adjust its origin as needed to maintain optimal stability for the user, even if the user walks many meters from the origin. In doing so, the origin may drift from its original physical location.
 
-> **Note regarding XRCoordinateSystem**
+Some example use cases: 
+* Campus tour
+* Renovation preview
+
+> **An aside regarding XRCoordinateSystem**
 >
 > When building an _unbounded_ experience, developers may additionally desire to "lock" content to a specific physical location to prevent it from drifting as users travel beyond a few meters; this functionality is known as _anchors_.  In addition to _anchors_, today's XR platforms offer other environment-related features such as _spatial meshes_, _point clouds_, _markers_, and more. While none of these features are yet part of the WebXR Device API, there are proposed designs under active development.
 >
@@ -94,7 +104,11 @@ It is important to note that `XRDevicePose` objects retrieved using the `floor-l
 
 #### Floor-level Subtype
 
-The origin of this subtype will be initialized at a position on the floor where it is safe for the user to engage in standing-scale experiences, with a `y` value of `0` at floor level. The exact `x`, `z`, and orientation values will be initialized based on the conventions of the underlying platform for standing-scale experiences. Some platforms may initialize these values to the user's exact position/orientation at the time of creation. Other platforms may place this standing-scale origin at the user's chosen floor-level origin for bounded experiences. It is also worth noting that some XR hardware will be unable to determine the actual floor level and will instead use an emulated floor.
+The origin of this subtype will be initialized at a position on the floor where it is safe for the user to engage in "standing-scale" experiences, with a `y` value of `0` at floor level. The exact `x`, `z`, and orientation values will be initialized based on the conventions of the underlying platform for standing-scale experiences. Some platforms may initialize these values to the user's exact position/orientation at the time of creation. Other platforms may place this standing-scale origin at the user's chosen floor-level origin for bounded experiences. It is also worth noting that some XR hardware will be unable to determine the actual floor level and will instead use an emulated floor.
+
+Some example use cases: 
+* VR chat "room"
+* Fallback for Bounded experience that relies on teleportation instead
 
 ```js
 let xrSession = null;
@@ -115,7 +129,12 @@ function onSessionStarted(session) {
 
 #### Eye-level Subtype
 
-The origin of this subtype will be initialized at a position near the user's head at the time of creation. The exact `x`, `y`, `z`, and orientation values will be initialized based on the conventions of the underlying platform for stationary eye-level experiences. Some platforms may initialize these values to the user's exact position/orientation at the time of creation. Other platforms that allow users to reset a common eye-level origin shared across multiple apps may use that origin instead.
+Sometimes referred to as "seated", this subtype's origin will be initialized at a position near the user's head at the time of creation. The exact `x`, `y`, `z`, and orientation values will be initialized based on the conventions of the underlying platform for stationary eye-level experiences. Some platforms may initialize these values to the user's exact position/orientation at the time of creation. Other platforms that allow users to reset a common eye-level origin shared across multiple apps may use that origin instead.
+
+Some example use cases: 
+* Immersive 2D video viewer
+* Racing simulator
+* Solar system explorer
 
 ```js
 let xrSession = null;
@@ -137,6 +156,9 @@ function onSessionStarted(session) {
 #### Position-disabled Subtype
 
 The origin of this subtype will be initialized at a position near the user's head at the time of creation.  `XRDevicePose` objects retrieved with this subtype will have varying orientation values but will always report `x`, `y`, `z` values to be `0`.
+
+Some example use cases: 
+* 360 photo/video viewer
 
 ```js
 let xrSession = null;
@@ -242,13 +264,13 @@ In the context of XR, the term _tracking system_ refers to the technology by whi
 
 ### Frame of Reference Examples
 
-| Type                           | Subtype             | Example                                       |
+| Type                           | Subtype             | Examples                                      |
 | -------------------------------| ------------------- | --------------------------------------------- |
-| `XRStationaryFrameOfReference` | `position-disabled` | 360 photo/video viewer                        |
-| `XRStationaryFrameOfReference` | `eye-level`         | Racing game or space simulator                |
-| `XRStationaryFrameOfReference` | `floor-level`       | Action game where you duck and dodge in place |
-| `XRBoundedFrameOfReference`    |                     | Room redecorator                              |
-| `XRUnboundedFrameOfReference`  |                     | Walking tour                                  |
+| `XRStationaryFrameOfReference` | `position-disabled` | - 360 photo/video viewer |
+| `XRStationaryFrameOfReference` | `eye-level`         | - Immersive 2D video viewer<br>- Racing simulator<br>- Solar system explorer |
+| `XRStationaryFrameOfReference` | `floor-level`       | - VR chat "room"<br>- Action game where you duck and dodge in place<br>- Fallback for Bounded experience that relies on teleportation instead |
+| `XRBoundedFrameOfReference`    |                     | - VR painting/sculpting tool<br>- Training simulators<br>- Dance games<br>- Previewing of 3D objects in the real world |
+| `XRUnboundedFrameOfReference`  |                     | - Campus tour<br>- Renovation preview |
 
 ### XRFrameOfReference Availability
 
