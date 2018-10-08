@@ -171,16 +171,17 @@ let xrFrameOfReference = null;
 
 function onSessionStarted(session) {
   xrSession = session;
-  xrSession.requestFrameOfReference({ type:'unbounded' })
+  xrSession.requestFrameOfReference(
+    { type:'unbounded' }, 
+    { type:'stationary', subtype:'eye-level' }
+  )
   .then((frameOfReference) => {
     xrFrameOfReference = frameOfReference;
-  })
-  .catch(() => {
-    // Build an appropriate fallback experience if possible; perhaps similar to the inline version
-    xrSession.requestFrameOfReference({ type:'stationary', subtype:'eye-level' })
-    .then((frameOfReference) => {
-      xrFrameOfReference = frameOfReference;
-    });
+    if (xrFrameOfReference instanceof XRUnboundedFrameOfReference) {
+      // Set up unbounded experience
+    } else if (xrFrameOfReference instanceof XRStationaryFrameOfReference) {
+      // Build an appropriate fallback experience if needed; perhaps similar to the inline version
+    }
   })
   .then(setupWebGLLayer)
   .then(() => {
@@ -280,7 +281,7 @@ partial dictionary XRSessionCreationOptions {
 };
 
 partial interface XRSession {
-  Promise<XRFrameOfReference> requestFrameOfReference(XRFrameOfReferenceOptions options);
+  Promise<XRFrameOfReference> requestFrameOfReference(XRFrameOfReferenceOptions options, XRFrameOfReferenceOptions... fallbackOptions);
 };
 
 //
@@ -319,7 +320,7 @@ enum XRFrameOfReferenceType {
 };
 
 dictionary XRFrameOfReferenceOptions {
-  XRFrameOfReferenceType type;
+  required XRFrameOfReferenceType type;
 };
 
 [SecureContext, Exposed=Window] interface XRFrameOfReference : EventTarget {
@@ -337,7 +338,7 @@ enum XRStationaryFrameOfReferenceSubtype {
 }
 
 dictionary XRStationaryFrameOfReferenceOptions : XRFrameOfReferenceOptions {
-  XRStationaryFrameOfReferenceSubtype subtype;
+  required XRStationaryFrameOfReferenceSubtype subtype;
 };
 
 [SecureContext, Exposed=Window]
