@@ -72,12 +72,6 @@ Some example use cases:
 * Campus tour
 * Renovation preview
 
-> **An aside regarding XRCoordinateSystem**
->
-> When building an _unbounded_ experience, developers may additionally desire to "lock" content to a specific physical location to prevent it from drifting as users travel beyond a few meters; this functionality is known as _anchors_.  In addition to _anchors_, today's XR platforms offer other environment-related features such as _spatial meshes_, _point clouds_, _markers_, and more. While none of these features are yet part of the WebXR Device API, there are proposed designs under active development.
->
-> The common property of these additional features and `XRFrameOfReference`, is that they all act as _spatial roots_ that are independently tracked by the underlying tracking systems. The concept of a _spatial roots_ is represented in the WebXR Device API as an `XRCoordinateSystem`.  Each instance of an `XRCoordinateSystem` does not have a fixed relationship with any other.  Instead, on a frame-by-frame basis, the tracking systems must attempt to locate them and compute their relative locations.  
-
 ```js
 let xrSession = null;
 let xrFrameOfReference = null;
@@ -95,7 +89,11 @@ function onSessionStarted(session) {
 }
 ```
 
-As developers start building experiences with the potential to span kilometers, they will also need to deal with the fact that floating point precision issues will be introduced.  When this is close to occurring, developers should create a new `XRUnboundedFrameOfReference`,and use the `coordinateSystem.getTransformTo()` method to reparent any nearby virtual object to the new frame of reference.  However, practically speaking, large _unbounded_ experiences will often segment app/game assets and logic into discrete map segments and, depending on map segment size, this may also be an opportune time to create a new `XRUnboundedFrameOfReference`.
+> **An aside regarding XRCoordinateSystem**
+>
+> When building an _unbounded_ experience, developers will likely need to "lock" content to a specific physical location to prevent it from drifting as users travel beyond a few meters; this functionality is known as _anchors_.  In addition to _anchors_, today's XR platforms offer other environment-related features such as _spatial meshes_, _point clouds_, _markers_, and more. While none of these features are yet part of the WebXR Device API, there are proposed designs under active development.
+>
+> The common property of these additional features and `XRFrameOfReference`, is that they all act as _spatial roots_ that are independently tracked by the underlying tracking systems. The concept of a _spatial roots_ is represented in the WebXR Device API as an `XRCoordinateSystem`.  Each instance of an `XRCoordinateSystem` does not have a fixed relationship with any other.  Instead, on a frame-by-frame basis, the tracking systems must attempt to locate them and compute their relative locations.  
 
 ### Stationary Frame of Reference
 A _stationary_ experience is one which does not require the user to move around in space.  This includes several categories of experiences that developers are commonly building today.  "Standing" experiences can be created by passing the `floor-level` subtype.  "Seated" experiences can be created by passing the `eye-level` subtype.  Orientation-only experiences such as 360 photo/video viewers can be created by passing the `position-disabled` subtype.
@@ -234,12 +232,8 @@ It is expected that developers will often choose to preview `immersive` experien
 
 In addition, when building a unbounded experiences, it may be necessary to sometimes switch from the primary `XRUnboundedFrameOfReference` to instead use an `XRBoundedFrameOfReference`.  For example, a whole-home renovation experience might choose to switch to a bounded frame of reference for reviewing a furniture selection library.
 
-### Handling a Tracking System Reset
-Many XR systems have a mechanism for allowing the user to reset which direction is "forward" or re-center the scene's origin at their current location. For security and comfort reasons the WebXR Device API has no mechanism to trigger a pose reset programmatically, but it can still be useful to know when it happens. Pages may want to take advantage of the visual discontinuity to reposition the user or other elements in the scene into a more natural position for the new orientation. Pages may also want to use the opportunity to clear or reset any additional transforms that have been applied if no longer needed.
-
-The exact behavior of a reset is platform specific, but in most cases it's expected that the origin and/or forward direction of the `XRStationaryFrameOfReference` will shift to be aligned to the users current physical location and orientation. On `XRBoundedFrameOfReference`, it is also expected that the `boundsGeometry` may have changed.
-
-A page can be notified when a pose reset happens by listening for the 'onreset' event from the `XRStationaryFrameOfReference` or `XRBoundedFrameOfReference`.  The `XRUnboundedFrameOfReference` will not receive this event.  The event must fire prior to any poses being delivered with the new origin/direction, and all poses queried following the event must be relative to the reset origin/direction. 
+### Reset Event
+The `XRFrameOfReference` type has an event, `onreset`, that is fired when a discontinuity of the frame of reference's origin occurs.  This discontinuity may be caused for different reasons for each type, but the result is essentially the same, the perception of the user's location will have changed.  In response, pages may wish to reposition virtual elements in the scene or clear any additional transforms, such as teleportation transforms, that may no longer be needed.  The `onreset` event will fire prior to any poses being delivered with the new origin/direction, and all poses queried following the event must be relative to the reset origin/direction. 
 
 ```js
 xrFrameOfReference.addEventListener('reset', xrFrameOfReferenceEvent => {
@@ -248,11 +242,19 @@ xrFrameOfReference.addEventListener('reset', xrFrameOfReferenceEvent => {
   resetYawTransform();
 
   // For an app using the XRBoundedFrameOfReference, this would be a perfect time to
-  // reset the bounds and potentially re-layout content intended to be reachable within
-  // the bounds
+  // re-layout content intended to be reachable within the bounds
   createBoundsMesh();
 });
 ```
+
+Example reasons `onreset` may fire:
+* Some XR systems have a mechanism for allowing the user to reset which direction is "forward" or re-center the scene's origin at their current location.
+* When a user steps outside the bounds of a "known" playspace and enters a different "known" playspace
+* An inside-out based tracking system is temporarily unable to locate the user (ex: due to poor lighting conditions) and is unable to relate the new map fragment to the previous map fragment when it recovers
+* When the user has travelled far enough from the origin of an `XRUnboundedFrameOfReference` that floating point error would become problematic
+
+The `onreset` event will **NOT** fire as an `XRUnboundedFrameOfReference` makes small changes to its origin as part of maintaining coordinate system stability near the user; these are considered minor corrections rather than a discontinuity in the origin.
+
 ## Appendix A : Miscellaneous
 
 ### Tracking Systems Overview
@@ -349,6 +351,8 @@ dictionary XRFrameOfReferenceOptions {
 
 [SecureContext, Exposed=Window] interface XRFrameOfReference : EventTarget {
   readonly attribute XRCoordinateSystem coordinateSystem;
+  
+  attribute EventHandler onreset;
 };
 
 //
@@ -368,8 +372,6 @@ dictionary XRStationaryFrameOfReferenceOptions : XRFrameOfReferenceOptions {
 [SecureContext, Exposed=Window]
 interface XRStationaryFrameOfReference : XRFrameOfReference {
   readonly attribute XRStationaryFrameOfReferenceSubtype subtype;
-  
-  attribute EventHandler onreset;
 };
 
 //
@@ -379,8 +381,6 @@ interface XRStationaryFrameOfReference : XRFrameOfReference {
 [SecureContext, Exposed=Window]
 interface XRBoundedFrameOfReference : XRFrameOfReference {
   readonly attribute FrozenArray<DOMPointReadOnly> boundsGeometry;
-
-  attribute EventHandler onreset;
 };
 
 //
