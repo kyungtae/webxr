@@ -274,6 +274,11 @@ In the context of XR, the term _tracking system_ refers to the technology by whi
 
 **Inside-out** tracking systems typically use cameras and computer vision technology to locate a user in 3D space.  This same technique is also used to "lock" virtual content at specific physical locations.
 
+### Decision flow chart
+
+How to pick a frame of reference:
+![Flow chart](frame-of-reference-flow-chart.jpg)
+
 ### Frame of Reference Examples
 
 | Type                           | Subtype             | Examples                                      |
