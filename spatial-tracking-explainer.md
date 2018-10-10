@@ -191,10 +191,10 @@ let xrFrameOfReference = null;
 
 function onSessionStarted(session) {
   xrSession = session;
-  xrSession.requestFrameOfReference(
+  xrSession.requestFrameOfReference([
     { type:'unbounded' }, 
     { type:'stationary', subtype:'eye-level' }
-  )
+  ])
   .then((frameOfReference) => {
     xrFrameOfReference = frameOfReference;
     if (xrFrameOfReference instanceof XRUnboundedFrameOfReference) {
@@ -318,7 +318,7 @@ partial dictionary XRSessionCreationOptions {
 };
 
 partial interface XRSession {
-  Promise<XRFrameOfReference> requestFrameOfReference(XRFrameOfReferenceOptions options, XRFrameOfReferenceOptions... fallbackOptions);
+  Promise<XRFrameOfReference> requestFrameOfReference(Array<XRFrameOfReferenceOptions> preferredOptions);
 };
 
 //
