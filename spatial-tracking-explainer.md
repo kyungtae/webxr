@@ -227,10 +227,14 @@ Some XR hardware with inside-out tracking has users establish "known spaces" tha
 
 Other XR hardware that is orientation-only tracking, may provide an emulated value for the floor offset.  On these devices, it is recommended that the User Agent or underlying platform provide a setting for users to customize this value.
 
-### Transitioning between XRFrameOfReferences
-It is expected that developers will often choose to preview `immersive` experiences with a similar experience `inline`.  In this situation, users often expect to see the scene from the same perspective when they make the transition from `inline` to `immersive`. In most cases, developers can accomplish this by computing the transform between the user and the virtual scene's origin in the previous `XRSession`.  When the new `XRSession` is initialized, the same transform can be applied to the virtual scene's origin in the new `XRFrameOfReference`.
+### Relating between XRFrameOfReferences
+There are several circumstances in which developers may choose to relate content in different frames of reference.
 
-In addition, when building a unbounded experiences, it may be necessary to sometimes switch from the primary `XRUnboundedFrameOfReference` to instead use an `XRBoundedFrameOfReference`.  For example, a whole-home renovation experience might choose to switch to a bounded frame of reference for reviewing a furniture selection library.
+#### Inline to Immersive
+It is expected that developers will often choose to preview `immersive` experiences with a similar experience `inline`.  In this situation, users often expect to see the scene from the same perspective when they make the transition from `inline` to `immersive`. To accomplish this, developers should grab the `poseModelMatrix` of the last `XRDevicePose` retrieved using the `inline` session's `XRFrameOfReference` and apply this same transform content to be displayed in the `immersive` session's `XRFrameOfReference`.  The same logic applies in the reverse when exiting `immersive`.
+
+#### Unbounded to Bounded 
+When building an experience that is predominantly based on an `XRUnboundedFrameOfReference`, developers may occasionally choose to switch to an `XRBoundedFrameOfReference`.  For example, a whole-home renovation experience might choose to switch to a bounded frame of reference for reviewing a furniture selection library.  If necessary to continue displaying content belonging to the previous frame of reference, developers may use the `coordinateSystem.getTransformTo()` method to re-parent nearby virtual content to the new frame of reference.
 
 ### Reset Event
 The `XRFrameOfReference` type has an event, `onreset`, that is fired when a discontinuity of the frame of reference's origin occurs.  This discontinuity may be caused for different reasons for each type, but the result is essentially the same, the perception of the user's location will have changed.  In response, pages may wish to reposition virtual elements in the scene or clear any additional transforms, such as teleportation transforms, that may no longer be needed.  The `onreset` event will fire prior to any poses being delivered with the new origin/direction, and all poses queried following the event must be relative to the reset origin/direction. 
