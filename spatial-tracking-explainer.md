@@ -241,13 +241,17 @@ The `XRFrameOfReference` type has an event, `onreset`, that is fired when a disc
 
 ```js
 xrFrameOfReference.addEventListener('reset', xrFrameOfReferenceEvent => {
+  // Check for the transformation between the previous origin and the current origin
+  // This will not always be available, but if it is, developers may choose to use it
+  let transformMatrix = xrFrameOfReferenceEvent.transformMatrix;
+
   // For an app that allows artificial Yaw rotation, this would be a perfect
   // time to reset that.
-  resetYawTransform();
+  resetYawTransform(transformMatrix);
 
   // For an app using the XRBoundedFrameOfReference, this would be a perfect time to
   // re-layout content intended to be reachable within the bounds
-  createBoundsMesh();
+  createBoundsMesh(transformMatrix);
 });
 ```
 
@@ -403,9 +407,11 @@ interface XRUnboundedFrameOfReference : XRFrameOfReference {
  Constructor(DOMString type, XRFrameOfReferenceEventInit eventInitDict)]
 interface XRFrameOfReferenceEvent : Event {
   readonly attribute XRFrameOfReference frameOfReference;
+  readonly attribute Float32Array? transformMatrix;
 };
 
 dictionary XRFrameOfReferenceEventInit : EventInit {
   required XRFrameOfReference frameOfReference;
+  Float32Array transformMatrix;
 };
 ```
