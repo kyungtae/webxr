@@ -102,7 +102,7 @@ It is important to note that `XRDevicePose` objects retrieved using the `floor-l
 
 #### Floor-level Subtype
 
-The origin of this subtype will be initialized at a position on the floor where it is safe for the user to engage in "standing-scale" experiences, with a `y` value of `0` at floor level. The exact `x`, `z`, and orientation values will be initialized based on the conventions of the underlying platform for standing-scale experiences. Some platforms may initialize these values to the user's exact position/orientation at the time of creation. Other platforms may place this standing-scale origin at the user's chosen floor-level origin for bounded experiences. It is also worth noting that some XR hardware will be unable to determine the actual floor level and will instead use an emulated floor.
+The origin of this subtype will be initialized at a position on the floor where it is safe for the user to engage in "standing-scale" experiences, with a `y` value of `0` at floor level. The exact `x`, `z`, and orientation values will be initialized based on the conventions of the underlying platform for standing-scale experiences. Some platforms may initialize these values to the user's exact position/orientation at the time of creation. Other platforms may place this standing-scale origin at the user's chosen floor-level origin for bounded experiences. It is also worth noting that some XR hardware will be unable to determine the actual floor level and will instead use an emulated or estimated floor.
 
 Some example use cases: 
 * VR chat "room"
@@ -222,10 +222,10 @@ function beginImmersiveSession() {
 }
 ```
 
-### Floor Alignment Compatibility
-Some XR hardware with inside-out tracking has users establish "known spaces" that can be used to easily provide `XRBoundedFrameOfReference` and the `floor-level` subtype of `XRStationaryFrameOfReference`.  On inside-out XR hardware which does not intrinsically provide these known spaces, the User Agent may respond to the promise request by presenting UI for selecting a floor-aligned origin.  If the User Agent chooses not to do this, it will reject the request for floor aligned `XRFrameOfReference` objects with an error indicating the reason.  In response, a polyfill can be used to provide the same behavior by using another `XRFrameOfReference` type to draw UI for selecting a floor origin.  If anchors are available to the polyfill, it could then place an anchor at the user's selected floor point.
+### Floor Alignment
+Some XR hardware with inside-out tracking has users establish "known spaces" that can be used to easily provide `XRBoundedFrameOfReference` and the `floor-level` subtype of `XRStationaryFrameOfReference`.  On inside-out XR hardware which does not intrinsically provide these known spaces, the User Agent must still provide `XRStationaryFrameOfReference` of subtype `floor-level`.  It may do so by estimating a floor level, but may not present any UI at the time the frame of reference is requested.  
 
-Other XR hardware that is orientation-only tracking, may provide an emulated value for the floor offset.  On these devices, it is recommended that the User Agent or underlying platform provide a setting for users to customize this value.
+Additionally, XR hardware with orientation-only tracking may also provide an emulated value for the floor offset of an `XRStationaryFrameOfReference` with the `floor-level` subtype.  On these devices, it is recommended that the User Agent or underlying platform provide a setting for users to customize this value.
 
 ### Relating between XRFrameOfReferences
 There are several circumstances in which developers may choose to relate content in different frames of reference.
@@ -297,14 +297,12 @@ How to pick a frame of reference:
 
 **Rejected** The UA will never provide this frame of reference
 
-&ast; Or polyfillable on inside-out tracking systems with anchor support.  See the section on "Floor Alignment Compatibility".
-
 | Type                           | Subtype             | Inline             | Immersive |
 | -------------------------------| ------------------- | ------------------ | ---------- |
 | `XRStationaryFrameOfReference` | `position-disabled` | Hardware-dependent | Guaranteed |
 | `XRStationaryFrameOfReference` | `eye-level`         | Hardware-dependent | Guaranteed |
-| `XRStationaryFrameOfReference` | `floor-level`       | Hardware-dependent | Guaranteed* |
-| `XRBoundedFrameOfReference`    |                     | Rejected           | Hardware-dependent* |
+| `XRStationaryFrameOfReference` | `floor-level`       | Hardware-dependent | Guaranteed |
+| `XRBoundedFrameOfReference`    |                     | Rejected           | Hardware-dependent |
 | `XRUnboundedFrameOfReference`  |                     | Rejected           | Hardware-dependent |
 
 ## Appendix B: Proposed partial IDL
