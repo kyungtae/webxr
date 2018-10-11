@@ -809,7 +809,6 @@ dictionary XRSessionCreationOptions {
 
   attribute EventHandler onblur;
   attribute EventHandler onfocus;
-  attribute EventHandler onresetpose;
   attribute EventHandler onend;
 
   attribute EventHandler onselect;
