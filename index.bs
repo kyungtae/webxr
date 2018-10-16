@@ -560,6 +560,7 @@ XRFrame {#xrpresentationframe-interface}
 [SecureContext, Exposed=Window] interface XRFrame {
   readonly attribute XRSession session;
   readonly attribute FrozenArray&lt;XRView&gt; views;
+  readonly attribute XRLightEstimation? lightEstimation;
 
   XRDevicePose? getDevicePose(XRCoordinateSystem coordinateSystem);
   XRInputPose? getInputPose(XRInputSource inputSource, XRCoordinateSystem coordinateSystem);
@@ -575,6 +576,22 @@ The <dfn attribute for="XRFrame">session</dfn> attribute returns the {{XRSession
 <dfn method for="XRFrame">getDevicePose(coordinateSystem)</dfn>
 
 <dfn method for="XRFrame">getInputPose(inputSource, coordinateSystem)</dfn>
+
+XRLightEstimation {#xrlightestimation-interface}
+-------------------
+
+<pre class="idl">
+[SecureContext, Exposed=Window] interface XRLightEstimation {
+  readonly attribute double intensity;
+  readonly attribute double? color;
+};
+</pre>
+
+
+An {{XRLightEstimation}} provides all the values needed to estimate a light of a single frame of an XR scene to the {{XRDevice}}'s display. It is null when the XREnvironmentBlendMode is "opaque". When the XREnvironmetBlendMode is "additive" or "alpha-blend", it reflects the light intensity and the color of the environment frame. Applications can only aquire an {{XRLightEstimation}} by reading {{lightEstimation}} of an {{XRFrame}}.
+It's consist of the intensity and the color, and the Application can apply them into the intensity and the color of the ambient light.
+The color is optional because some platforms may support only the intensity.
+
 
 Coordinate Systems {#coordinatesystems}
 ==================
